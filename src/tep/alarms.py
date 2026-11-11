@@ -119,3 +119,27 @@ def summarize_delays(delays: list[float | None]) -> dict:
         "p90_delay_min": float(np.quantile(as_inf, 0.9, method="higher")) if n else float("nan"),
         "within_1h_rate": float(np.mean(as_inf <= 60)) if n else float("nan"),
     }
+
+
+def alarm_episodes(alarm: np.ndarray, clear_samples: int = 20) -> list[tuple[int, int]]:
+    """Group a debounced alarm series into episodes an operator would see.
+
+    An episode starts when the alarm switches on and stays open until the
+    alarm has been off for `clear_samples` consecutive samples, so a
+    flickering alarm is one event rather than many. Returns (start, end)
+    index pairs with `end` exclusive.
+    """
+    alarm = np.asarray(alarm, dtype=bool)
+    episodes: list[tuple[int, int]] = []
+    start, last_on = None, None
+    for index, on in enumerate(alarm):
+        if on:
+            if start is None:
+                start = index
+            last_on = index
+        elif start is not None and index - last_on >= clear_samples:
+            episodes.append((start, index))
+            start = None
+    if start is not None:
+        episodes.append((start, len(alarm)))
+    return episodes

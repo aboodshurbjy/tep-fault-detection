@@ -71,3 +71,14 @@ def test_undetected_runs_count_against_the_median():
     assert summary["median_delay_min"] == np.inf
     assert summary["mean_delay_detected_min"] == pytest.approx(10.5)
     assert summarize_delays([9.0, 12.0, 30.0])["median_delay_min"] == 12.0
+
+
+def test_alarm_episodes_merge_flicker_and_clear_after_quiet_time():
+    from tep.alarms import alarm_episodes
+
+    alarm = np.zeros(100, dtype=bool)
+    alarm[10:13] = True                 # first event
+    alarm[15:17] = True                 # flicker 2 samples later: same event
+    alarm[60:] = True                   # second event, still on at the end
+    assert alarm_episodes(alarm, clear_samples=20) == [(10, 36), (60, 100)]
+    assert alarm_episodes(np.zeros(50, dtype=bool)) == []
