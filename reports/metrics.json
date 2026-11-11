@@ -1,0 +1,833 @@
+{
+  "settings": {
+    "window_samples": 10,
+    "persist_samples": 3,
+    "sample_minutes": 3,
+    "thresholds": {
+      "pca": 1.000599552638814,
+      "lightgbm": 0.9030923860049631
+    },
+    "target_false_alarms_per_24h": 0.14285714285714285,
+    "normal_test_runs": 200,
+    "faulty_test_runs_per_fault": 100,
+    "post_fault_hours": 40.0
+  },
+  "normal": {
+    "pca": {
+      "runs": 200,
+      "hours": 9600.0,
+      "false_alarms": 73,
+      "false_alarms_per_24h": 0.1825,
+      "time_in_alarm": 0.0005729166666666667,
+      "chance": {
+        "runs": 200,
+        "detection_rate": 0.26,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1206.6346153846155,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.005
+      }
+    },
+    "lightgbm": {
+      "runs": 200,
+      "hours": 9600.0,
+      "false_alarms": 48,
+      "false_alarms_per_24h": 0.12,
+      "time_in_alarm": 0.000609375,
+      "chance": {
+        "runs": 200,
+        "detection_rate": 0.15,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1291.2,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.0
+      }
+    }
+  },
+  "faults": {
+    "1": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 15.0,
+        "mean_delay_detected_min": 15.09,
+        "p90_delay_min": 18.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 20,
+          "Stripper": 4,
+          "Feed": 1
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmeas_20",
+          "xmv_5"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 18.0,
+        "mean_delay_detected_min": 18.87,
+        "p90_delay_min": 21.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 22,
+          "Stripper": 3
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmv_5",
+          "xmeas_7"
+        ]
+      }
+    },
+    "2": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 39.0,
+        "mean_delay_detected_min": 39.96,
+        "p90_delay_min": 45.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 19,
+          "Reactor": 6
+        },
+        "top_sensors": [
+          "xmeas_30",
+          "xmeas_10",
+          "xmeas_24"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 48.0,
+        "mean_delay_detected_min": 48.96,
+        "p90_delay_min": 54.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 25
+        },
+        "top_sensors": [
+          "xmeas_30",
+          "xmeas_10",
+          "xmeas_24"
+        ]
+      }
+    },
+    "3": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 0.27,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1362.0,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.01,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 12,
+          "Reactor": 6,
+          "Separator": 5,
+          "Feed": 2
+        },
+        "top_sensors": [
+          "xmeas_41",
+          "xmeas_40",
+          "xmeas_23"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 0.42,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1224.7142857142858,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.01,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 16,
+          "Stripper": 4,
+          "Compressor": 3,
+          "Separator": 1,
+          "Feed": 1
+        },
+        "top_sensors": [
+          "xmeas_21",
+          "xmv_1",
+          "xmeas_2"
+        ]
+      }
+    },
+    "4": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 10.62,
+        "p90_delay_min": 15.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmv_10",
+          "xmeas_9",
+          "xmeas_25"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 9.0,
+        "p90_delay_min": 9.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmv_10",
+          "xmeas_9",
+          "xmeas_2"
+        ]
+      }
+    },
+    "5": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 9.57,
+        "p90_delay_min": 12.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 23,
+          "Feed": 1,
+          "Reactor": 1
+        },
+        "top_sensors": [
+          "xmeas_11",
+          "xmeas_22",
+          "xmeas_21"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 12.0,
+        "mean_delay_detected_min": 12.57,
+        "p90_delay_min": 15.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 22,
+          "Reactor": 2,
+          "Separator": 1
+        },
+        "top_sensors": [
+          "xmeas_18",
+          "xmeas_22",
+          "xmeas_21"
+        ]
+      }
+    },
+    "6": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 9.0,
+        "p90_delay_min": 9.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Feed": 25
+        },
+        "top_sensors": [
+          "xmv_3",
+          "xmeas_1",
+          "xmeas_21"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 15.0,
+        "mean_delay_detected_min": 15.18,
+        "p90_delay_min": 18.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Feed": 19,
+          "Compressor": 6
+        },
+        "top_sensors": [
+          "xmv_3",
+          "xmeas_1",
+          "xmv_5"
+        ]
+      }
+    },
+    "7": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 9.0,
+        "p90_delay_min": 9.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 14,
+          "Separator": 5,
+          "Stripper": 3,
+          "Feed": 3
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmeas_25",
+          "xmeas_31"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 10.26,
+        "p90_delay_min": 12.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Feed": 18,
+          "Stripper": 7
+        },
+        "top_sensors": [
+          "xmeas_22",
+          "xmv_4",
+          "xmeas_18"
+        ]
+      }
+    },
+    "8": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 63.0,
+        "mean_delay_detected_min": 68.67,
+        "p90_delay_min": 99.0,
+        "within_1h_rate": 0.45,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 11,
+          "Separator": 6,
+          "Reactor": 5,
+          "Stripper": 2,
+          "Feed": 1
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmeas_20",
+          "xmv_5"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 67.5,
+        "mean_delay_detected_min": 74.28,
+        "p90_delay_min": 108.0,
+        "within_1h_rate": 0.35,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 12,
+          "Stripper": 11,
+          "Reactor": 2
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmeas_20",
+          "xmv_5"
+        ]
+      }
+    },
+    "9": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 0.3,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1415.8,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.01,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 12,
+          "Reactor": 5,
+          "Separator": 5,
+          "Feed": 3
+        },
+        "top_sensors": [
+          "xmeas_37",
+          "xmeas_23",
+          "xmeas_41"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 0.37,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1093.054054054054,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 15,
+          "Separator": 3,
+          "Stripper": 3,
+          "Feed": 2,
+          "Compressor": 2
+        },
+        "top_sensors": [
+          "xmeas_21",
+          "xmeas_2",
+          "xmv_1"
+        ]
+      }
+    },
+    "10": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 147.0,
+        "mean_delay_detected_min": 189.84,
+        "p90_delay_min": 360.0,
+        "within_1h_rate": 0.07,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 22,
+          "Feed": 1,
+          "Reactor": 1,
+          "Separator": 1
+        },
+        "top_sensors": [
+          "xmeas_18",
+          "xmeas_19",
+          "xmeas_38"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 99.0,
+        "mean_delay_detected_min": 113.22,
+        "p90_delay_min": 228.0,
+        "within_1h_rate": 0.22,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 24,
+          "Feed": 1
+        },
+        "top_sensors": [
+          "xmeas_18",
+          "xmeas_2",
+          "xmeas_20"
+        ]
+      }
+    },
+    "11": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 27.0,
+        "mean_delay_detected_min": 31.89,
+        "p90_delay_min": 54.0,
+        "within_1h_rate": 0.97,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmv_10",
+          "xmeas_9",
+          "xmeas_4"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 27.0,
+        "mean_delay_detected_min": 29.07,
+        "p90_delay_min": 42.0,
+        "within_1h_rate": 0.99,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmv_10",
+          "xmeas_9",
+          "xmeas_2"
+        ]
+      }
+    },
+    "12": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 30.0,
+        "mean_delay_detected_min": 32.7,
+        "p90_delay_min": 54.0,
+        "within_1h_rate": 0.93,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 21,
+          "Feed": 3,
+          "Stripper": 1
+        },
+        "top_sensors": [
+          "xmeas_11",
+          "xmeas_22",
+          "xmeas_21"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 30.0,
+        "mean_delay_detected_min": 31.41,
+        "p90_delay_min": 42.0,
+        "within_1h_rate": 0.98,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 17,
+          "Separator": 8
+        },
+        "top_sensors": [
+          "xmeas_18",
+          "xmeas_22",
+          "xmeas_11"
+        ]
+      }
+    },
+    "13": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 117.0,
+        "mean_delay_detected_min": 132.12,
+        "p90_delay_min": 222.0,
+        "within_1h_rate": 0.04,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 10,
+          "Separator": 6,
+          "Stripper": 4,
+          "Feed": 4,
+          "Compressor": 1
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmeas_25",
+          "xmeas_7"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 136.5,
+        "mean_delay_detected_min": 145.47,
+        "p90_delay_min": 237.0,
+        "within_1h_rate": 0.03,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 11,
+          "Reactor": 9,
+          "Feed": 2,
+          "Separator": 2,
+          "Compressor": 1
+        },
+        "top_sensors": [
+          "xmeas_16",
+          "xmeas_21",
+          "xmeas_7"
+        ]
+      }
+    },
+    "14": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 9.0,
+        "mean_delay_detected_min": 9.87,
+        "p90_delay_min": 12.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmeas_21",
+          "xmeas_2",
+          "xmv_1"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 12.0,
+        "mean_delay_detected_min": 12.63,
+        "p90_delay_min": 15.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmeas_9",
+          "xmv_10",
+          "xmeas_21"
+        ]
+      }
+    },
+    "15": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 0.32,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1281.0,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.01,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 10,
+          "Stripper": 10,
+          "Reactor": 2,
+          "Feed": 2,
+          "Compressor": 1
+        },
+        "top_sensors": [
+          "xmeas_39",
+          "xmeas_40",
+          "xmeas_23"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 0.4,
+        "median_delay_min": Infinity,
+        "mean_delay_detected_min": 1218.975,
+        "p90_delay_min": Infinity,
+        "within_1h_rate": 0.01,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 10,
+          "Stripper": 10,
+          "Compressor": 3,
+          "Feed": 1,
+          "Reactor": 1
+        },
+        "top_sensors": [
+          "xmeas_11",
+          "xmeas_18",
+          "xmeas_22"
+        ]
+      }
+    },
+    "16": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 105.0,
+        "mean_delay_detected_min": 124.89,
+        "p90_delay_min": 219.0,
+        "within_1h_rate": 0.25,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 24,
+          "Separator": 1
+        },
+        "top_sensors": [
+          "xmv_9",
+          "xmeas_19",
+          "xmeas_38"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 52.5,
+        "mean_delay_detected_min": 57.39,
+        "p90_delay_min": 105.0,
+        "within_1h_rate": 0.67,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Stripper": 25
+        },
+        "top_sensors": [
+          "xmeas_19",
+          "xmeas_18",
+          "xmv_9"
+        ]
+      }
+    },
+    "17": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 96.0,
+        "mean_delay_detected_min": 106.53,
+        "p90_delay_min": 186.0,
+        "within_1h_rate": 0.23,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmeas_21",
+          "xmv_1",
+          "xmeas_2"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 93.0,
+        "mean_delay_detected_min": 103.59,
+        "p90_delay_min": 186.0,
+        "within_1h_rate": 0.27,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Reactor": 25
+        },
+        "top_sensors": [
+          "xmeas_21",
+          "xmeas_2",
+          "xmv_1"
+        ]
+      }
+    },
+    "18": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 147.0,
+        "mean_delay_detected_min": 158.61,
+        "p90_delay_min": 270.0,
+        "within_1h_rate": 0.08,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 25
+        },
+        "top_sensors": [
+          "xmeas_11",
+          "xmeas_22",
+          "xmeas_31"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 139.5,
+        "mean_delay_detected_min": 151.47,
+        "p90_delay_min": 252.0,
+        "within_1h_rate": 0.08,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Separator": 25
+        },
+        "top_sensors": [
+          "xmeas_22",
+          "xmv_1",
+          "xmeas_20"
+        ]
+      }
+    },
+    "19": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 205.5,
+        "mean_delay_detected_min": 322.38,
+        "p90_delay_min": 723.0,
+        "within_1h_rate": 0.19,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 10,
+          "Reactor": 7,
+          "Separator": 5,
+          "Feed": 2,
+          "Stripper": 1
+        },
+        "top_sensors": [
+          "xmeas_5",
+          "xmv_5",
+          "xmeas_33"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 15.0,
+        "mean_delay_detected_min": 17.76,
+        "p90_delay_min": 27.0,
+        "within_1h_rate": 1.0,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 25
+        },
+        "top_sensors": [
+          "xmv_5",
+          "xmeas_20",
+          "xmv_1"
+        ]
+      }
+    },
+    "20": {
+      "pca": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 123.0,
+        "mean_delay_detected_min": 129.96,
+        "p90_delay_min": 216.0,
+        "within_1h_rate": 0.12,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 21,
+          "Separator": 3,
+          "Reactor": 1
+        },
+        "top_sensors": [
+          "xmv_5",
+          "xmeas_33",
+          "xmeas_7"
+        ]
+      },
+      "lightgbm": {
+        "runs": 100,
+        "detection_rate": 1.0,
+        "median_delay_min": 121.5,
+        "mean_delay_detected_min": 124.17,
+        "p90_delay_min": 198.0,
+        "within_1h_rate": 0.14,
+        "attribution_runs": 25,
+        "unit_votes": {
+          "Compressor": 24,
+          "Separator": 1
+        },
+        "top_sensors": [
+          "xmv_5",
+          "xmeas_20",
+          "xmeas_11"
+        ]
+      }
+    }
+  }
+}
