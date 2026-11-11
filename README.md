@@ -233,8 +233,6 @@ curl -s localhost:8000/score -H 'content-type: application/json' \
 
 ![Dashboard screenshot](docs/dashboard.png)
 
-_Screenshot placeholder: save a capture of the dashboard to `docs/dashboard.png`._
-
 ## What would change in a real plant
 
 The benchmark is a clean, stationary simulation. A real unit is neither, and the gap is mostly on the side that hurts.
