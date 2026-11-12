@@ -143,10 +143,29 @@ The last row of the table is the key to reading them. It asks the same question 
 
 - **PCA is at chance.** Its 28 to 32% is indistinguishable from the 29% it scores on runs with no fault at all. Those "detections" are false alarms that happened to fall after the fault began.
 - **LightGBM is above chance but not useful.** It flags 31 to 37% of runs against a chance level of 19%, so it has found some real signal. But it still misses about two runs in three, and when it does alarm it is on average 18 to 19 hours after the fault began, barely sooner than a random false alarm (19.3 hours). At most 1 run in 100 is caught in the first hour.
-- **Why they are hard.** Faults 3 and 9 disturb the temperature of one feed stream, which carries little heat compared with the reactor. Fault 15 is a sticking condenser cooling water valve. In all three the control system absorbs the disturbance and the measured variables stay within their normal noise. Published methods that report high detection rates on these faults usually do so at false alarm rates no operator would accept.
+- **Why they are hard.** In all three the control system absorbs the disturbance and the measured variables stay within their normal noise. The next section gives the process reasons and the measured size of each fault.
 - **What this means in practice.** An operator should treat this tool as blind to these three faults. Lowering the threshold to "catch" them would trade a small gain for many more false alarms across the whole plant.
 
 With 500 runs per fault, a detection rate near 35% carries a sampling uncertainty of roughly ±4 percentage points, so the differences between the three hard faults (31 to 37% for LightGBM) are at the edge of the noise and should not be read into.
+
+### Why the process hides faults 3, 9 and 15
+
+Each of the three has an easily detected counterpart of the same kind elsewhere in the plant, which shows that the difficulty lies in where the disturbance enters, not in the type of fault. The table measures what a detector has to work with: over all 500 test runs, after the fault begins, the largest change in any variable's mean (in units of its fault-free standard deviation) and the largest rise in any variable's within-run variability. `python -m tep.signature` reproduces it.
+
+| Fault | Description | Largest mean shift (fault-free SD) | Largest rise in variability |
+|---|---|---|---|
+| 3 | D feed temperature step (stream 2) | -0.25, Reactor cooling water outlet temperature | none (under 1%) |
+| 4 | Reactor cooling water inlet temperature step | +6.92, Reactor cooling water valve | none (under 1%) |
+| 9 | D feed temperature random variation (stream 2) | none (under 0.05) | ×1.03, Reactor cooling water outlet temperature |
+| 11 | Reactor cooling water inlet temperature random variation | +0.54, Reactor cooling water valve | ×6.52, Reactor cooling water valve |
+| 15 | Condenser cooling water valve sticking | none (under 0.05) | ×1.09, Condenser cooling water outlet temperature |
+| 14 | Reactor cooling water valve sticking | +0.12, Reactor cooling water valve | ×13.69, Reactor cooling water valve |
+
+- **Faults 3 and 9: a feed temperature the plant does not measure.** None of the 52 variables is a feed temperature, so the disturbance itself is invisible and can only be seen through its effect on the reactor. That effect is small. Stream 2 is one of four fresh feeds, and the fresh feeds are mixed with the recycle stream, which makes up about two thirds of the reactor feed (26.9 of 42.3 kscmh), so a change in the temperature of the D feed barely moves the temperature of the combined reactor feed. The reactor's energy balance is dominated by the heat of reaction, which the cooling water removes, and the sensible heat of one feed stream is a minor term in it. The reactor temperature controller makes up the difference with a trim on the cooling water valve. For the step (fault 3) the only trace is a quarter of a standard deviation in the cooling water outlet temperature and a smaller move in the valve; reactor temperature itself does not move. For the random variation (fault 9) the mean does not move at all and the cooling water outlet temperature is 3% more variable.
+- **Compare faults 4 and 11.** These disturb the temperature of the reactor cooling water, the stream that carries the reactor's whole heat duty. The same controller responds, but now the valve has to move seven standard deviations (fault 4) or swing six times more than normal (fault 11), and both are caught within half an hour.
+- **Fault 15: a sticking valve where the process is forgiving.** How much a sticking valve matters depends on how sensitive the process is to the flow it sets. The reactor is exothermic and its temperature depends on precise cooling, so when the reactor cooling water valve sticks (fault 14) the temperature loop cycles and reactor temperature swings thirteen times more than normal. The condenser is forgiving by comparison. Its controller output is not idle: in normal operation it moves more than the reactor's (a within-run standard deviation of 1.5% of valve travel against 0.5%). But a small error in condenser duty only shifts the vapour-liquid split slightly in a separator whose level and pressure are already under control, and nothing downstream amplifies it. The result is a 9% rise in the variability of the condenser cooling water outlet temperature, 6% in separator temperature, and nothing else.
+- **This is where LightGBM's weak signal comes from.** When it does alarm on these faults, the sensors it names are the ones in the table: reactor cooling water outlet temperature for faults 3 and 9, separator temperature and condenser cooling water outlet temperature for fault 15 (see the attribution table below). A shift of a quarter of a standard deviation, or a few percent more variability, in one or two variables out of 52 is enough to beat chance over 40 hours but not to raise a timely alarm at one false alarm per week.
+- **What would help.** More data or a different model on the same 52 variables is unlikely to change this, because the information is barely there. A feed temperature transmitter on stream 2 would make faults 3 and 9 trivial, and valve position feedback or a stiction check on the condenser cooling water valve would do the same for fault 15. Detecting them is an instrumentation question more than a modelling one.
 
 ## Fault attribution
 
@@ -271,6 +290,7 @@ src/tep/
   scoring.py       both detectors and thresholds as one bundle
   train.py         fit and calibrate
   evaluate.py      held-out evaluation and reports
+  signature.py     how much each fault moves the measured variables
   api.py           FastAPI scoring endpoint
 dashboard/app.py   Streamlit replay
 reports/           results from the last evaluation
