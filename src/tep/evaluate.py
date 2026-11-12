@@ -85,7 +85,13 @@ def evaluate_fault(scorer: Scorer, frame: pd.DataFrame, attribution_runs: int = 
 
 
 def _percent(value: float) -> str:
-    return "—" if np.isnan(value) else f"{value:.0%}"
+    if np.isnan(value):
+        return "—"
+    text = f"{value:.0%}"
+    # a rate just short of 0% or 100% must not be rounded onto it
+    if (text == "100%" and value < 1) or (text == "0%" and value > 0):
+        return f"{value:.1%}"
+    return text
 
 
 def _minutes(value: float) -> str:
@@ -181,7 +187,7 @@ def evaluate(normal_runs: int = 500, runs_per_fault: int = 500, data_dir=None, m
         frame = load_runs("faulty_testing", runs=range(1, runs_per_fault + 1), faults=[fault], data_dir=data_dir)
         metrics["faults"][str(fault)] = evaluate_fault(scorer, frame)
         summary = " | ".join(
-            f"{model} {metrics['faults'][str(fault)][model]['detection_rate']:.0%} "
+            f"{model} {_percent(metrics['faults'][str(fault)][model]['detection_rate'])} "
             f"{_minutes(metrics['faults'][str(fault)][model]['median_delay_min'])} min" for model in MODELS)
         print(f"  fault {fault:>2}: {summary}")
 
