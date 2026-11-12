@@ -44,7 +44,7 @@ pip install -e ".[dev]"
 
 python -m tep.download      # fetch and verify the dataset (about 1.4 GB, plus 1.6 GB of Parquet)
 python -m tep.train         # fit both detectors, calibrate alarm thresholds (under a minute)
-python -m tep.evaluate      # held-out results -> reports/
+python -m tep.evaluate      # held-out results on the full testing files -> reports/ (about 95 s)
 pytest
 
 uvicorn tep.api:app                    # scoring API on :8000
@@ -78,18 +78,18 @@ Each detector produces one score per sample. The alarm is raised when the score 
 
 ## Results
 
-All numbers are from the held-out testing files: 100 runs of each fault (40 hours of faulty operation per run) and 200 fault-free runs (9,600 hours).
+All numbers are from the held-out testing files and use all 500 fault-free runs (24,000 hours) and all 500 runs of each fault (10,000 faulty runs, 40 hours of faulty operation per run).
 
-The testing files hold 500 fault-free runs and 500 runs of each fault (10,000 faulty runs), every run 48 hours long. The evaluation reads the first 200 fault-free runs and the first 100 runs of each fault, which are the defaults of `python -m tep.evaluate` (`--normal-runs` and `--runs-per-fault`). The subset is there only to keep evaluation runtime and memory down: the seed-sharing split does not call for it, because that split applies to the training files and every testing run is held out, so `--normal-runs 500 --runs-per-fault 500` scores the full set.
+The full evaluation takes about 95 seconds and peaks at about 4.5 GB of memory on an 8-core Apple M2 with 16 GB. For a quick check, `python -m tep.evaluate --normal-runs 200 --runs-per-fault 100` scores the first 200 and 100 runs in about 30 seconds.
 
 ### False alarms in normal operation
 
 | Model | False alarms per 24 h | False alarms | Fault-free hours | Time in alarm |
 |---|---:|---:|---:|---:|
-| PCA (T²/SPE) | 0.18 | 73 | 9,600 | 0.06% |
-| LightGBM | 0.12 | 48 | 9,600 | 0.06% |
+| PCA (T²/SPE) | 0.20 | 202 | 24,000 | 0.06% |
+| LightGBM | 0.17 | 169 | 24,000 | 0.11% |
 
-LightGBM stays inside the one-per-week budget on unseen data. PCA overshoots it (about 1.3 per week), which is typical when a threshold set on one batch of runs meets another.
+Both models overshoot the one-per-week budget (0.14 per 24 h) on unseen data: PCA raises about 1.4 false alarms per week and LightGBM about 1.2. Some overshoot is typical when a threshold set on one batch of runs meets another.
 
 ### Detection delay by fault
 
@@ -99,54 +99,54 @@ LightGBM stays inside the one-per-week budget on unseen data. PCA overshoots it 
 |---|---|---:|---:|---:|---:|
 | 1 | A/C feed ratio step, B constant (stream 4) | 100% | 15 | 100% | 18 |
 | 2 | B composition step, A/C ratio constant (stream 4) | 100% | 39 | 100% | 48 |
-| 3 \* | D feed temperature step (stream 2) | 27% | not detected | 42% | not detected |
+| 3 \* | D feed temperature step (stream 2) | 28% | not detected | 37% | not detected |
 | 4 | Reactor cooling water inlet temperature step | 100% | 9 | 100% | 9 |
 | 5 | Condenser cooling water inlet temperature step | 100% | 9 | 100% | 12 |
 | 6 | A feed loss (stream 1) | 100% | 9 | 100% | 15 |
 | 7 | C header pressure loss (stream 4) | 100% | 9 | 100% | 9 |
 | 8 | A, B, C feed composition random variation (stream 4) | 100% | 63 | 100% | 68 |
-| 9 \* | D feed temperature random variation (stream 2) | 30% | not detected | 37% | not detected |
-| 10 | C feed temperature random variation (stream 4) | 100% | 147 | 100% | 99 |
-| 11 | Reactor cooling water inlet temperature random variation | 100% | 27 | 100% | 27 |
-| 12 | Condenser cooling water inlet temperature random variation | 100% | 30 | 100% | 30 |
-| 13 | Reaction kinetics slow drift | 100% | 117 | 100% | 136 |
+| 9 \* | D feed temperature random variation (stream 2) | 28% | not detected | 31% | not detected |
+| 10 | C feed temperature random variation (stream 4) | 100% | 162 | 100% | 102 |
+| 11 | Reactor cooling water inlet temperature random variation | 100% | 28 | 100% | 27 |
+| 12 | Condenser cooling water inlet temperature random variation | 100% | 27 | 100% | 30 |
+| 13 | Reaction kinetics slow drift | 100% | 123 | 100% | 135 |
 | 14 | Reactor cooling water valve sticking | 100% | 9 | 100% | 12 |
-| 15 \* | Condenser cooling water valve sticking | 32% | not detected | 40% | not detected |
-| 16 | Unknown | 100% | 105 | 100% | 52 |
-| 17 | Unknown | 100% | 96 | 100% | 93 |
-| 18 | Unknown | 100% | 147 | 100% | 140 |
-| 19 | Unknown | 100% | 206 | 100% | 15 |
-| 20 | Unknown | 100% | 123 | 100% | 122 |
-| — | **No fault (chance level)** | **26%** | not detected | **15%** | not detected |
+| 15 \* | Condenser cooling water valve sticking | 32% | not detected | 34% | not detected |
+| 16 | Unknown | 100% | 111 | 100% | 51 |
+| 17 | Unknown | 100% | 99 | 100% | 94 |
+| 18 | Unknown | 100% | 147 | 100% | 138 |
+| 19 | Unknown | 99.8% | 189 | 100% | 15 |
+| 20 | Unknown | 100% | 135 | 100% | 132 |
+| — | **No fault (chance level)** | **29%** | not detected | **19%** | not detected |
 
 \* Known to be hard to detect.
 
 **Reading the table**
 
-- **Seventeen of the twenty faults are detected in every test run by both models.** Step faults in the cooling water, feed loss and header pressure (4, 5, 6, 7, 14) are caught at or near the 9-minute floor.
+- **Seventeen of the twenty faults are detected in every test run by LightGBM, and in all but one run by PCA.** PCA missed a single run of fault 19 out of 500. Step faults in the cooling water, feed loss and header pressure (4, 5, 6, 7, 14) are caught at or near the 9-minute floor.
 - **The classical baseline is hard to beat.** On most faults the two models are within a few minutes of each other, and PCA is slightly faster on several step faults because it reacts to single samples while the classifier waits for its 30-minute window to fill with faulty data.
-- **LightGBM is clearly better where the signature is in the dynamics rather than the level:** fault 19 (15 minutes against 206), fault 16 (52 against 105) and fault 10 (99 against 147). Rolling standard deviation and slope see changes in variability that a snapshot method averages away.
+- **LightGBM is clearly better where the signature is in the dynamics rather than the level:** fault 19 (15 minutes against 189), fault 16 (51 against 111) and fault 10 (102 against 162). Rolling standard deviation and slope see changes in variability that a snapshot method averages away.
 - **Slow faults are slow for both.** The kinetics drift (13) and unknown faults 17, 18 and 20 take 1.5 to 2.5 hours to be flagged by either model.
 
 ### Faults 3, 9 and 15: not detected
 
 These three are the benchmark's known blind spots, and this project does not solve them.
 
-The last row of the table is the key to reading them. It asks the same question of fault-free runs: how often does an alarm go off in the same 40-hour window when *nothing is wrong*? At one false alarm per week that happens by chance in 26% of runs for PCA and 15% for LightGBM.
+The last row of the table is the key to reading them. It asks the same question of fault-free runs: how often does an alarm go off in the same 40-hour window when *nothing is wrong*? With thresholds calibrated for one false alarm per week, that happens by chance in 29% of runs for PCA and 19% for LightGBM.
 
 | Fault | PCA detected | LightGBM detected | LightGBM mean delay when it does alarm | Caught within 1 hour (either model) |
 |---|---:|---:|---:|---:|
-| 3 | 27% | 42% | 20.4 h | 1% |
-| 9 | 30% | 37% | 18.2 h | 1% or less |
-| 15 | 32% | 40% | 20.3 h | 1% |
-| No fault (chance) | 26% | 15% | 21.5 h | under 1% |
+| 3 | 28% | 37% | 18.8 h | 1% or less |
+| 9 | 28% | 31% | 18.2 h | under 1% |
+| 15 | 32% | 34% | 18.6 h | under 1% |
+| No fault (chance) | 29% | 19% | 19.3 h | under 1% |
 
-- **PCA is at chance.** Its 27 to 32% is indistinguishable from the 26% it scores on runs with no fault at all. Those "detections" are false alarms that happened to fall after the fault began.
-- **LightGBM is above chance but not useful.** It flags 37 to 42% of runs against a chance level of 15%, so it has found some real signal. But it still misses about six runs in ten, and when it does alarm it is on average 18 to 20 hours after the fault began, barely sooner than a random false alarm (21.5 hours). About 1 run in 100 is caught in the first hour.
+- **PCA is at chance.** Its 28 to 32% is indistinguishable from the 29% it scores on runs with no fault at all. Those "detections" are false alarms that happened to fall after the fault began.
+- **LightGBM is above chance but not useful.** It flags 31 to 37% of runs against a chance level of 19%, so it has found some real signal. But it still misses about two runs in three, and when it does alarm it is on average 18 to 19 hours after the fault began, barely sooner than a random false alarm (19.3 hours). At most 1 run in 100 is caught in the first hour.
 - **Why they are hard.** Faults 3 and 9 disturb the temperature of one feed stream, which carries little heat compared with the reactor. Fault 15 is a sticking condenser cooling water valve. In all three the control system absorbs the disturbance and the measured variables stay within their normal noise. Published methods that report high detection rates on these faults usually do so at false alarm rates no operator would accept.
 - **What this means in practice.** An operator should treat this tool as blind to these three faults. Lowering the threshold to "catch" them would trade a small gain for many more false alarms across the whole plant.
 
-With 100 runs per fault, a detection rate near 35% carries a sampling uncertainty of roughly ±9 percentage points, so the differences between the three hard faults are not meaningful.
+With 500 runs per fault, a detection rate near 35% carries a sampling uncertainty of roughly ±4 percentage points, so the differences between the three hard faults (31 to 37% for LightGBM) are at the edge of the noise and should not be read into.
 
 ## Fault attribution
 
