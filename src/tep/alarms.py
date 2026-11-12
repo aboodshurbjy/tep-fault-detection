@@ -108,7 +108,7 @@ def summarize_delays(delays: list[float | None]) -> dict:
     detected = np.array([d for d in delays if d is not None], dtype=float)
     n = len(delays)
     rate = len(detected) / n if n else float("nan")
-    # undetected runs count as "never" in the median, so it is honest about misses
+    # undetected runs count as "never" in the median
     as_inf = np.array([np.inf if d is None else d for d in delays], dtype=float)
     median = float(np.median(as_inf)) if n else float("nan")
     return {
@@ -126,7 +126,7 @@ def alarm_episodes(alarm: np.ndarray, clear_samples: int = 20) -> list[tuple[int
 
     An episode starts when the alarm switches on and stays open until the
     alarm has been off for `clear_samples` consecutive samples, so a
-    flickering alarm is one event rather than many. Returns (start, end)
+    flickering alarm counts as one event. Returns (start, end)
     index pairs with `end` exclusive.
     """
     alarm = np.asarray(alarm, dtype=bool)
