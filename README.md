@@ -80,6 +80,8 @@ Each detector produces one score per sample. The alarm is raised when the score 
 
 All numbers are from the held-out testing files: 100 runs of each fault (40 hours of faulty operation per run) and 200 fault-free runs (9,600 hours).
 
+The testing files hold 500 fault-free runs and 500 runs of each fault (10,000 faulty runs), every run 48 hours long. The evaluation reads the first 200 fault-free runs and the first 100 runs of each fault, which are the defaults of `python -m tep.evaluate` (`--normal-runs` and `--runs-per-fault`). The subset is there only to keep evaluation runtime and memory down: the seed-sharing split does not call for it, because that split applies to the training files and every testing run is held out, so `--normal-runs 500 --runs-per-fault 500` scores the full set.
+
 ### False alarms in normal operation
 
 | Model | False alarms per 24 h | False alarms | Fault-free hours | Time in alarm |
