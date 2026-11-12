@@ -152,7 +152,7 @@ def attribution_markdown(metrics: dict) -> str:
     return "\n".join(lines)
 
 
-def evaluate(normal_runs: int = 200, runs_per_fault: int = 100, data_dir=None, model_dir=None,
+def evaluate(normal_runs: int = 500, runs_per_fault: int = 500, data_dir=None, model_dir=None,
              report_dir=None) -> dict:
     started = time.time()
     scorer = Scorer.load(model_dir)
@@ -197,8 +197,8 @@ def evaluate(normal_runs: int = 200, runs_per_fault: int = 100, data_dir=None, m
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--normal-runs", type=int, default=200, help="fault-free test runs (48 h each)")
-    parser.add_argument("--runs-per-fault", type=int, default=100, help="faulty test runs per fault type")
+    parser.add_argument("--normal-runs", type=int, default=500, help="fault-free test runs (48 h each)")
+    parser.add_argument("--runs-per-fault", type=int, default=500, help="faulty test runs per fault type")
     args = parser.parse_args()
     evaluate(args.normal_runs, args.runs_per_fault)
 
