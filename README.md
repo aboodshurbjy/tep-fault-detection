@@ -1,23 +1,23 @@
 # TEP Fault Detection
 
-Early fault detection on the Tennessee Eastman Process benchmark, built as a predictive maintenance tool for a plant operator: raise an alarm soon after something goes wrong, rarely when nothing has, and say which part of the plant to look at.
+Early fault detection on the Tennessee Eastman Process benchmark, built as a predictive maintenance tool for a plant operator. It should raise an alarm soon after something goes wrong, rarely when nothing has, and say which part of the plant to look at.
 
-Two detectors are compared on equal terms:
+I compare two detectors under the same alarm rule:
 
-- **PCA with T² and SPE**, the classical multivariate process monitoring method.
-- **LightGBM** on windowed features (30-minute rolling mean, standard deviation and slope of every sensor).
+- PCA with T² and SPE, the classical multivariate process monitoring method.
+- LightGBM on windowed features (30-minute rolling mean, standard deviation and slope of every sensor).
 
-## The process in plain English
+## The process
 
 The Tennessee Eastman Process is a simulation of a real chemical plant, published by Downs and Vogel of Eastman Chemical in 1993 as a test problem for control and monitoring.
 
-- **Feed.** Four gas streams bring in the reactants (A, C, D, E) and a little inert (B).
-- **Reactor.** The gases react over a catalyst to form two liquid products, G and H, plus an unwanted byproduct F. The reactions give off heat, so the reactor is cooled with cooling water. If cooling falls behind, temperature and pressure climb, and the plant trips at high pressure.
-- **Condenser and separator.** The reactor's outlet gas is cooled so the products condense. A separator drum splits liquid from uncondensed gas.
-- **Compressor and purge.** The uncondensed gas is compressed and recycled to the reactor. A small purge stream is vented so the inert and the byproduct do not build up.
-- **Stripper.** The liquid goes to a stripping column, where steam and fresh feed strip out leftover reactants. Product leaves from the bottom.
+- Four gas feed streams bring in the reactants (A, C, D, E) and a little inert (B).
+- In the reactor the gases react over a catalyst to form two liquid products, G and H, plus an unwanted byproduct F. The reactions give off heat, so the reactor is cooled with cooling water. If cooling falls behind, temperature and pressure climb, and the plant trips at high pressure.
+- The condenser cools the reactor's outlet gas so the products condense. A separator drum splits liquid from uncondensed gas.
+- The compressor recycles the uncondensed gas to the reactor. A small purge stream is vented so the inert and the byproduct do not build up.
+- The liquid goes to a stripping column, where steam and fresh feed strip out leftover reactants. Product leaves from the bottom.
 
-The plant runs under closed-loop control, which matters for monitoring: when a disturbance hits, the controllers move valves to hold temperatures, levels and pressures steady. A fault often shows up in a *valve position* rather than in the measurement the valve is protecting, and some faults are hidden almost completely.
+The plant runs under closed-loop control. When a disturbance hits, the controllers move valves to hold temperatures, levels and pressures steady. So a fault often shows up in a valve position while the measurement that valve protects stays flat, and some faults are hidden almost completely.
 
 There are 52 variables: 41 measurements (flows, temperatures, pressures, levels and delayed composition analysers) and 11 valve positions. The benchmark defines 20 faults, including step changes, random variation, a slow drift, sticking valves and five whose cause was never published.
 
@@ -27,12 +27,12 @@ Rieth, Amsel, Tran and Cook (2017), *Additional Tennessee Eastman Process Simula
 
 | File | Runs | Length | Fault starts |
 |---|---|---|---|
-| Fault-free training | 500 | 25 h (500 samples) | — |
+| Fault-free training | 500 | 25 h (500 samples) | none |
 | Faulty training | 500 per fault × 20 faults | 25 h | after 1 h |
-| Fault-free testing | 500 | 48 h (960 samples) | — |
+| Fault-free testing | 500 | 48 h (960 samples) | none |
 | Faulty testing | 500 per fault × 20 faults | 48 h | after 8 h |
 
-One sample is 3 minutes. `python -m tep.download` reads the file list and checksums from the Dataverse API, downloads about 1.4 GB, verifies every file against its published MD5, and converts to Parquet. If anything fails it stops with an error; it never falls back to other data.
+One sample is 3 minutes. `python -m tep.download` reads the file list and checksums from the Dataverse API, downloads about 1.4 GB, verifies every file against its published MD5, and converts to Parquet. If anything fails it stops with an error. It never falls back to other data.
 
 ## Quick start
 
@@ -55,9 +55,9 @@ streamlit run dashboard/app.py         # operator dashboard on :8501
 
 ### Split by simulation run, never by row
 
-A run is 25 or 48 hours of strongly autocorrelated samples from one random seed. Splitting rows at random would put near-identical neighbours on both sides and inflate every score. All splits here are on whole runs.
+A run is 25 or 48 hours of strongly autocorrelated samples from one random seed. Splitting rows at random would put near-identical neighbours on both sides and inflate every score, so I split on whole runs.
 
-There is a second, less obvious trap. In this dataset **run number *k* uses the same random seed for every fault and for the fault-free file**: the first hour of run 17 under fault 4 is bit-for-bit identical to the first hour of fault-free run 17. Splitting by (fault, run) pairs would therefore still leak. So a run number is assigned to exactly one set, and that assignment is applied across all faults. A test checks this property on the real files.
+There is a second trap. In this dataset run number *k* uses the same random seed for every fault and for the fault-free file. The first hour of run 17 under fault 4 is bit-for-bit identical to the first hour of fault-free run 17, so splitting by (fault, run) pairs would still leak. I assign each run number to exactly one set and apply that assignment across all faults. A test checks the shared-seed property on the real files.
 
 | Set | Source | Used for |
 |---|---|---|
@@ -68,13 +68,13 @@ There is a second, less obvious trap. In this dataset **run number *k* uses the 
 
 ### The two detectors
 
-**PCA (T² and SPE).** A PCA model is fitted to standardised fault-free data, keeping 31 components (90% of variance). T² measures how far a sample sits from normal operation inside the model; SPE measures how badly the usual relationships between sensors are broken. Each is divided by its control limit and the larger ratio is the anomaly score. Limits are empirical 99th percentiles, because the textbook F and chi-squared limits assume independent Gaussian samples and closed-loop process data are neither.
+The PCA model is fitted to standardised fault-free data and keeps 31 components (90% of variance). T² measures how far a sample sits from normal operation inside the model. SPE measures how badly the usual relationships between sensors are broken. Each is divided by its control limit and the larger ratio is the anomaly score. The limits are empirical 99th percentiles, because the textbook F and chi-squared limits assume independent Gaussian samples and closed-loop process data are neither.
 
-**LightGBM.** A binary normal-versus-fault classifier over 156 features: the mean, standard deviation and least-squares slope of each of the 52 variables over a trailing 30-minute window. Windows are causal (they use only past samples) and never cross a run boundary. The anomaly score is the predicted probability of a fault.
+The LightGBM model is a binary normal-versus-fault classifier over 156 features: the mean, standard deviation and least-squares slope of each of the 52 variables over a trailing 30-minute window. Windows are causal (they use only past samples) and never cross a run boundary. The anomaly score is the predicted probability of a fault.
 
 ### One alarm rule for both
 
-Each detector produces one score per sample. The alarm is raised when the score has been over its threshold for **3 consecutive samples** (9 minutes), which is ordinary alarm debouncing. Each threshold is calibrated on the fault-free calibration runs to the same budget: **at most one false alarm per week** (0.14 per 24 h). Because both models are held to the same false alarm budget, their detection delays can be compared directly. The fastest possible detection under this rule is 9 minutes.
+Each detector produces one score per sample. The alarm is raised when the score has been over its threshold for 3 consecutive samples (9 minutes), which is ordinary alarm debouncing. Each threshold is calibrated on the fault-free calibration runs to the same budget of at most one false alarm per week (0.14 per 24 h), so the detection delays of the two models can be compared directly. The fastest possible detection under this rule is 9 minutes.
 
 ## Results
 
@@ -117,22 +117,20 @@ Both models overshoot the one-per-week budget (0.14 per 24 h) on unseen data: PC
 | 18 | Unknown | 100% | 147 | 100% | 138 |
 | 19 | Unknown | 99.8% | 189 | 100% | 15 |
 | 20 | Unknown | 100% | 135 | 100% | 132 |
-| — | **No fault (chance level)** | **29%** | not detected | **19%** | not detected |
+| n/a | **No fault (chance level)** | **29%** | not detected | **19%** | not detected |
 
 \* Known to be hard to detect.
 
-**Reading the table**
-
-- **Seventeen of the twenty faults are detected in every test run by LightGBM, and in all but one run by PCA.** PCA missed a single run of fault 19 out of 500. Step faults in the cooling water, feed loss and header pressure (4, 5, 6, 7, 14) are caught at or near the 9-minute floor.
-- **The classical baseline is hard to beat.** On most faults the two models are within a few minutes of each other, and PCA is slightly faster on several step faults because it reacts to single samples while the classifier waits for its 30-minute window to fill with faulty data.
-- **LightGBM is clearly better where the signature is in the dynamics rather than the level:** fault 19 (15 minutes against 189), fault 16 (51 against 111) and fault 10 (102 against 162). Rolling standard deviation and slope see changes in variability that a snapshot method averages away.
-- **Slow faults are slow for both.** The kinetics drift (13) and unknown faults 17, 18 and 20 take 1.5 to 2.5 hours to be flagged by either model.
+- LightGBM detects seventeen of the twenty faults in every test run. PCA does the same except for a single run of fault 19 out of 500. Step faults in the cooling water, feed loss and header pressure (4, 5, 6, 7, 14) are caught at or near the 9-minute floor.
+- On most faults the two models are within a few minutes of each other. PCA is slightly faster on several step faults because it reacts to single samples, while the classifier waits for its 30-minute window to fill with faulty data.
+- LightGBM is clearly better on faults that change the variability of a signal and leave its level alone: fault 19 (15 minutes against 189), fault 16 (51 against 111) and fault 10 (102 against 162). Rolling standard deviation and slope pick that up. A single-sample method does not.
+- The kinetics drift (13) and unknown faults 17, 18 and 20 take 1.5 to 2.5 hours to be flagged by either model.
 
 ### Faults 3, 9 and 15: not detected
 
 These three are the benchmark's known blind spots, and this project does not solve them.
 
-The last row of the table is the key to reading them. It asks the same question of fault-free runs: how often does an alarm go off in the same 40-hour window when *nothing is wrong*? With thresholds calibrated for one false alarm per week, that happens by chance in 29% of runs for PCA and 19% for LightGBM.
+The last row of the table is the baseline. It counts how often an alarm goes off in the same 40-hour window on fault-free runs. With thresholds calibrated for one false alarm per week, that happens by chance in 29% of runs for PCA and 19% for LightGBM.
 
 | Fault | PCA detected | LightGBM detected | LightGBM mean delay when it does alarm | Caught within 1 hour (either model) |
 |---|---:|---:|---:|---:|
@@ -141,16 +139,16 @@ The last row of the table is the key to reading them. It asks the same question 
 | 15 | 32% | 34% | 18.6 h | under 1% |
 | No fault (chance) | 29% | 19% | 19.3 h | under 1% |
 
-- **PCA is at chance.** Its 28 to 32% is indistinguishable from the 29% it scores on runs with no fault at all. Those "detections" are false alarms that happened to fall after the fault began.
-- **LightGBM is above chance but not useful.** It flags 31 to 37% of runs against a chance level of 19%, so it has found some real signal. But it still misses about two runs in three, and when it does alarm it is on average 18 to 19 hours after the fault began, barely sooner than a random false alarm (19.3 hours). At most 1 run in 100 is caught in the first hour.
-- **Why they are hard.** In all three the control system absorbs the disturbance and the measured variables stay within their normal noise. The next section gives the process reasons and the measured size of each fault.
-- **What this means in practice.** An operator should treat this tool as blind to these three faults. Lowering the threshold to "catch" them would trade a small gain for many more false alarms across the whole plant.
+- PCA is at chance. Its 28 to 32% is indistinguishable from the 29% it scores on runs with no fault at all. Those "detections" are false alarms that happened to fall after the fault began.
+- LightGBM is above chance but not useful. It flags 31 to 37% of runs against a chance level of 19%, so it has found some real signal. It still misses about two runs in three, and when it does alarm it is on average 18 to 19 hours after the fault began, barely sooner than a random false alarm (19.3 hours). At most 1 run in 100 is caught in the first hour.
+- In all three faults the control system absorbs the disturbance and the measured variables stay within their normal noise.
+- An operator should treat this tool as blind to faults 3, 9 and 15. Lowering the threshold to catch them would buy a small gain and cost many more false alarms across the plant.
 
-With 500 runs per fault, a detection rate near 35% carries a sampling uncertainty of roughly ±4 percentage points, so the differences between the three hard faults (31 to 37% for LightGBM) are at the edge of the noise and should not be read into.
+With 500 runs per fault, a detection rate near 35% carries a sampling uncertainty of roughly ±4 percentage points. The differences between the three hard faults (31 to 37% for LightGBM) are at the edge of the noise.
 
-### Why the process hides faults 3, 9 and 15
+### Process reasons for faults 3, 9 and 15
 
-Each of the three has an easily detected counterpart of the same kind elsewhere in the plant, which shows that the difficulty lies in where the disturbance enters, not in the type of fault. The table measures what a detector has to work with: over all 500 test runs, after the fault begins, the largest change in any variable's mean (in units of its fault-free standard deviation) and the largest rise in any variable's within-run variability. `python -m tep.signature` reproduces it.
+Each of the three has an easily detected counterpart of the same kind elsewhere in the plant, so the difficulty comes from where the disturbance enters. The table shows what a detector has to work with: over all 500 test runs, after the fault begins, the largest change in any variable's mean (in units of its fault-free standard deviation) and the largest rise in any variable's within-run variability. `python -m tep.signature` reproduces it.
 
 | Fault | Description | Largest mean shift (fault-free SD) | Largest rise in variability |
 |---|---|---|---|
@@ -161,60 +159,34 @@ Each of the three has an easily detected counterpart of the same kind elsewhere 
 | 15 | Condenser cooling water valve sticking | none (under 0.05) | ×1.09, Condenser cooling water outlet temperature |
 | 14 | Reactor cooling water valve sticking | +0.12, Reactor cooling water valve | ×13.69, Reactor cooling water valve |
 
-- **Faults 3 and 9: a feed temperature the plant does not measure.** None of the 52 variables is a feed temperature, so the disturbance itself is invisible and can only be seen through its effect on the reactor. That effect is small. Stream 2 is one of four fresh feeds, and the fresh feeds are mixed with the recycle stream, which makes up about two thirds of the reactor feed (26.9 of 42.3 kscmh), so a change in the temperature of the D feed barely moves the temperature of the combined reactor feed. The reactor's energy balance is dominated by the heat of reaction, which the cooling water removes, and the sensible heat of one feed stream is a minor term in it. The reactor temperature controller makes up the difference with a trim on the cooling water valve. For the step (fault 3) the only trace is a quarter of a standard deviation in the cooling water outlet temperature and a smaller move in the valve; reactor temperature itself does not move. For the random variation (fault 9) the mean does not move at all and the cooling water outlet temperature is 3% more variable.
-- **Compare faults 4 and 11.** These disturb the temperature of the reactor cooling water, the stream that carries the reactor's whole heat duty. The same controller responds, but now the valve has to move seven standard deviations (fault 4) or swing six times more than normal (fault 11), and both are caught within half an hour.
-- **Fault 15: a sticking valve where the process is forgiving.** How much a sticking valve matters depends on how sensitive the process is to the flow it sets. The reactor is exothermic and its temperature depends on precise cooling, so when the reactor cooling water valve sticks (fault 14) the temperature loop cycles and reactor temperature swings thirteen times more than normal. The condenser is forgiving by comparison. Its controller output is not idle: in normal operation it moves more than the reactor's (a within-run standard deviation of 1.5% of valve travel against 0.5%). But a small error in condenser duty only shifts the vapour-liquid split slightly in a separator whose level and pressure are already under control, and nothing downstream amplifies it. The result is a 9% rise in the variability of the condenser cooling water outlet temperature, 6% in separator temperature, and nothing else.
-- **This is where LightGBM's weak signal comes from.** When it does alarm on these faults, the sensors it names are the ones in the table: reactor cooling water outlet temperature for faults 3 and 9, separator temperature and condenser cooling water outlet temperature for fault 15 (see the attribution table below). A shift of a quarter of a standard deviation, or a few percent more variability, in one or two variables out of 52 is enough to beat chance over 40 hours but not to raise a timely alarm at one false alarm per week.
-- **What would help.** More data or a different model on the same 52 variables is unlikely to change this, because the information is barely there. A feed temperature transmitter on stream 2 would make faults 3 and 9 trivial, and valve position feedback or a stiction check on the condenser cooling water valve would do the same for fault 15. Detecting them is an instrumentation question more than a modelling one.
+Faults 3 and 9 disturb a feed temperature, and none of the 52 variables is a feed temperature. The disturbance can only be seen through its effect on the reactor, and that effect is small. Stream 2 is one of four fresh feeds. The fresh feeds are mixed with the recycle stream, which makes up about two thirds of the reactor feed (26.9 of 42.3 kscmh), so a change in the D feed temperature barely moves the temperature of the combined feed. The reactor's energy balance is dominated by the heat of reaction, and the sensible heat of one feed stream is a minor term in it. The reactor temperature controller makes up the difference with a trim on the cooling water valve. For the step (fault 3) the only trace is a quarter of a standard deviation in the cooling water outlet temperature and a smaller move in the valve. Reactor temperature does not move. For the random variation (fault 9) the mean does not move at all and the cooling water outlet temperature is 3% more variable.
+
+Faults 4 and 11 are the counterparts. They disturb the temperature of the reactor cooling water, the stream that carries the reactor's whole heat duty. The same controller responds, but the valve has to move seven standard deviations (fault 4) or swing six times more than normal (fault 11). Both are caught within half an hour.
+
+Fault 15 is a sticking valve in a part of the process that tolerates it. The reactor is exothermic and its temperature depends on precise cooling, so when the reactor cooling water valve sticks (fault 14) the temperature loop cycles and reactor temperature swings thirteen times more than normal. The condenser controller is not idle. In normal operation its output moves more than the reactor's (a within-run standard deviation of 1.5% of valve travel against 0.5%). But a small error in condenser duty only shifts the vapour-liquid split slightly in a separator whose level and pressure are already under control, and nothing downstream amplifies it. The result is a 9% rise in the variability of the condenser cooling water outlet temperature, 6% in separator temperature, and nothing else.
+
+When LightGBM does alarm on these faults, the sensors it names are the ones in the table: reactor cooling water outlet temperature for faults 3 and 9, separator temperature and condenser cooling water outlet temperature for fault 15 (see [docs/attribution.md](docs/attribution.md)). A shift of a quarter of a standard deviation, or a few percent more variability, in one or two variables out of 52 beats chance over 40 hours. It does not raise a timely alarm at one false alarm per week.
+
+More data or a different model on the same 52 variables is unlikely to help, because the information is barely there. A feed temperature transmitter on stream 2 would make faults 3 and 9 trivial. Valve position feedback or a stiction check on the condenser cooling water valve would do the same for fault 15.
 
 ## Fault attribution
 
 When an alarm is raised, each model reports the sensors most responsible and the unit operation they belong to.
 
-- **PCA contribution plots.** If SPE is the statistic over its limit, each sensor's contribution is its squared residual. If T² is, the contribution is that sensor's share of the T² sum.
-- **SHAP for LightGBM.** TreeSHAP values for the alarming window, with each sensor's mean, standard deviation and slope features added together. Positive values push the prediction towards "fault".
+- PCA uses contribution plots. If SPE is the statistic over its limit, each sensor's contribution is its squared residual. If T² is, the contribution is that sensor's share of the T² sum.
+- LightGBM uses TreeSHAP values for the alarming window, with each sensor's mean, standard deviation and slope features added together. Positive values push the prediction towards "fault".
 
 The top five sensors are mapped to a unit through a lookup table (`src/tep/attribution.py`), and the unit carrying the most contribution is the one to check first.
 
 | Unit | Sensors | Check first |
 |---|---|---|
-| Feed | Feed flows and feed valves (XMEAS 1–4, XMV 1–4) | Supply pressure, feed composition, feed control valves |
-| Reactor | Reactor pressure, level, temperature, feed rate and feed analysis; cooling water outlet temperature and valve (XMEAS 6–9, 21, 23–28; XMV 10) | Temperature and pressure trends, cooling water supply and valve, level control |
-| Separator | Separator temperature, level, pressure, underflow; condenser cooling water; purge rate, valve and analysis (XMEAS 10–14, 22, 29–36; XMV 6, 7, 11) | Condenser cooling water, separator level and pressure, purge valve |
-| Stripper | Stripper level, pressure, temperature, underflow, steam; product analysis (XMEAS 15–19, 37–41; XMV 8, 9) | Steam supply and valve, level control, product composition |
+| Feed | Feed flows and feed valves (XMEAS 1-4, XMV 1-4) | Supply pressure, feed composition, feed control valves |
+| Reactor | Reactor pressure, level, temperature, feed rate and feed analysis; cooling water outlet temperature and valve (XMEAS 6-9, 21, 23-28; XMV 10) | Temperature and pressure trends, cooling water supply and valve, level control |
+| Separator | Separator temperature, level, pressure, underflow; condenser cooling water; purge rate, valve and analysis (XMEAS 10-14, 22, 29-36; XMV 6, 7, 11) | Condenser cooling water, separator level and pressure, purge valve |
+| Stripper | Stripper level, pressure, temperature, underflow, steam; product analysis (XMEAS 15-19, 37-41; XMV 8, 9) | Steam supply and valve, level control, product composition |
 | Compressor | Recycle flow, compressor work, recycle valve (XMEAS 5, 20; XMV 5) | Recycle valve position, compressor load, recycle flow |
 
-### Does it point at the right place?
-
-For up to 25 detected test runs per fault, the unit each model named at its first alarm, with how many of those runs agreed, next to where the fault physically starts.
-
-| Fault | Where it starts | PCA points at | PCA top sensors | LightGBM points at | LightGBM top sensors |
-|---|---|---|---|---|---|
-| 1 | Feed | Compressor (20/25) | xmeas_16, xmeas_20, xmv_5 | Compressor (22/25) | xmeas_16, xmv_5, xmeas_7 |
-| 2 | Feed | Separator (19/25) | xmeas_30, xmeas_10, xmeas_24 | Separator (25/25) | xmeas_30, xmeas_10, xmeas_24 |
-| 3 | Feed | Stripper (12/25) | xmeas_41, xmeas_40, xmeas_23 | Reactor (16/25) | xmeas_21, xmv_1, xmeas_2 |
-| 4 | Reactor | Reactor (25/25) | xmv_10, xmeas_9, xmeas_25 | Reactor (25/25) | xmv_10, xmeas_9, xmeas_2 |
-| 5 | Separator | Separator (23/25) | xmeas_11, xmeas_22, xmeas_21 | Stripper (22/25) | xmeas_18, xmeas_22, xmeas_21 |
-| 6 | Feed | Feed (25/25) | xmv_3, xmeas_1, xmeas_21 | Feed (19/25) | xmv_3, xmeas_1, xmv_5 |
-| 7 | Feed | Reactor (14/25) | xmeas_16, xmeas_25, xmeas_31 | Feed (18/25) | xmeas_22, xmv_4, xmeas_18 |
-| 8 | Feed | Compressor (11/25) | xmeas_16, xmeas_20, xmv_5 | Compressor (12/25) | xmeas_16, xmeas_20, xmv_5 |
-| 9 | Feed | Stripper (12/25) | xmeas_37, xmeas_23, xmeas_41 | Reactor (15/25) | xmeas_21, xmeas_2, xmv_1 |
-| 10 | Feed | Stripper (22/25) | xmeas_18, xmeas_19, xmeas_38 | Stripper (24/25) | xmeas_18, xmeas_2, xmeas_20 |
-| 11 | Reactor | Reactor (25/25) | xmv_10, xmeas_9, xmeas_4 | Reactor (25/25) | xmv_10, xmeas_9, xmeas_2 |
-| 12 | Separator | Separator (21/25) | xmeas_11, xmeas_22, xmeas_21 | Stripper (17/25) | xmeas_18, xmeas_22, xmeas_11 |
-| 13 | Reactor | Reactor (10/25) | xmeas_16, xmeas_25, xmeas_7 | Stripper (11/25) | xmeas_16, xmeas_21, xmeas_7 |
-| 14 | Reactor | Reactor (25/25) | xmeas_21, xmeas_2, xmv_1 | Reactor (25/25) | xmeas_9, xmv_10, xmeas_21 |
-| 15 | Separator | Separator (10/25) | xmeas_39, xmeas_40, xmeas_23 | Separator (10/25) | xmeas_11, xmeas_18, xmeas_22 |
-| 16 | unknown | Stripper (24/25) | xmv_9, xmeas_19, xmeas_38 | Stripper (25/25) | xmeas_19, xmeas_18, xmv_9 |
-| 17 | unknown | Reactor (25/25) | xmeas_21, xmv_1, xmeas_2 | Reactor (25/25) | xmeas_21, xmeas_2, xmv_1 |
-| 18 | unknown | Separator (25/25) | xmeas_11, xmeas_22, xmeas_31 | Separator (25/25) | xmeas_22, xmv_1, xmeas_20 |
-| 19 | unknown | Compressor (10/25) | xmeas_5, xmv_5, xmeas_33 | Compressor (25/25) | xmv_5, xmeas_20, xmv_1 |
-| 20 | unknown | Compressor (21/25) | xmv_5, xmeas_33, xmeas_7 | Compressor (24/25) | xmv_5, xmeas_20, xmeas_11 |
-
-- **Faults that start inside a unit are located well.** Reactor cooling faults (4, 11, 14) are attributed to the reactor in every run by both models, led by the cooling water valve, reactor temperature and cooling water outlet temperature. Feed loss (6) is attributed to the feed.
-- **Attribution shows where the symptoms are, not the root cause.** Feed composition faults (1, 8) are flagged at the compressor, and fault 10 at the stripper, because that is where the control system's response first becomes visible. This is a starting point for the operator's own diagnosis, not a verdict.
-- **The two models can disagree.** For condenser cooling faults (5, 12), PCA names the separator, where the fault is, while LightGBM names the stripper, which is downstream.
-- **For faults 3, 9 and 15 the attribution is noise.** The alarms are mostly false, the votes are split, and the named unit should be ignored.
+I checked the unit each model named at its first alarm against where the fault physically starts, for up to 25 detected test runs per fault. Reactor cooling faults (4, 11, 14) are attributed to the reactor in every run by both models, and feed loss (6) to the feed. Feed composition faults (1, 8) are flagged at the compressor and fault 10 at the stripper, because that is where the control system's response first shows. So the attribution locates symptoms, and the operator still has to find the cause. For faults 3, 9 and 15 it is noise. The full table is in [docs/attribution.md](docs/attribution.md).
 
 ## Scoring API
 
@@ -246,7 +218,7 @@ curl -s localhost:8000/score -H 'content-type: application/json' \
 }
 ```
 
-`alarm` is `null` for a model when too few samples were sent to judge three in a row; `over_threshold` then reports the latest sample alone.
+`alarm` is `null` for a model when too few samples were sent to judge three in a row. `over_threshold` then reports the latest sample alone.
 
 ## Dashboard
 
@@ -254,27 +226,13 @@ curl -s localhost:8000/score -H 'content-type: application/json' \
 
 ![Dashboard screenshot](docs/dashboard.png)
 
-## What would change in a real plant
+## Limits of the benchmark
 
-The benchmark is a clean, stationary simulation. A real unit is neither, and the gap is mostly on the side that hurts.
-
-**Sensor drift and bad data.** Real transmitters drift, foul, freeze and get recalibrated; analysers go offline for hours. Both models here assume the "normal" they were trained on is permanent, so slow drift would look like a fault and be alarmed. A deployment needs sensor validation in front of the models (range, rate-of-change and stuck-value checks), a defined behaviour when a reading is missing, and a way to tell "this instrument is wrong" from "the process is wrong". PCA's SPE statistic is naturally sensitive to single-sensor failures, which is useful if it is routed to the instrument technician rather than the board operator.
-
-**Operating modes.** This data covers one operating point. Real plants change rate, grade and feedstock, start up, shut down and run with equipment out of service. Each change shifts normal behaviour and would trip a single-mode model. Options are a model per mode, features expressed relative to setpoints, or suppressing monitoring during known transitions.
-
-**Retraining.** Catalyst ages, exchangers foul, valves are replaced, control loops are retuned. The model of "normal" has to follow, which means scheduled refits on recent data that operators have confirmed as fault-free, recalibrating thresholds every time, and versioning models so an alarm can be traced to the model that raised it. The danger is retraining on a period that contained an undetected slow fault, which teaches the model that the fault is normal. Monitoring the score distribution and the false alarm rate between refits shows when a model has gone stale.
-
-**Labelled faults are rare.** The classifier here was trained on 80 examples of each fault. A real plant has a handful of documented incidents, rarely labelled to the minute and never covering every failure. In practice the unsupervised method (PCA or similar) carries the monitoring, and a supervised model is added only for the few fault types with enough history. A classifier also says nothing reliable about a fault it has never seen.
-
-**Alarm fatigue.** Operators already manage hundreds of alarms, and guidance such as ISA-18.2 and EEMUA 191 puts a manageable load at around one alarm per ten minutes across the whole console. A detector that cries wolf gets ignored or disabled. The one-per-week budget used here is per model and would be divided among every monitored unit. A deployment would also add what this prototype leaves out: shelving and acknowledgement, deadbands so a score hovering at the threshold does not chatter, grouping related alarms into one event, and an advisory priority below safety alarms. The right threshold is set with operations, by weighing the cost of a missed fault against the cost of a wasted investigation, and the false alarm rate should be tracked as a live performance figure.
-
-**Attribution is a hint.** As the results show, contributions point at where symptoms appear. Operators need to know that, and the lookup table should be reviewed by a process engineer for the actual plant.
-
-**Integration.** Scoring would run against the plant historian or an OPC UA feed, on the plant side of the network boundary, with the tool strictly advisory: it informs the operator and never writes to the control system. Alarms and operator responses should be logged so the tool can be audited and improved.
+The benchmark is a clean, stationary simulation of one operating point. A real unit has sensor drift, bad data, mode changes, few labelled faults and operators who already have too many alarms. [docs/real-plant.md](docs/real-plant.md) goes through what I would change for each.
 
 ## Tests
 
-`pytest` covers the feature windows (values checked against an independent rolling calculation, causality, no window across a run boundary), the leakage-free split, the alarm logic and the scoring endpoint. Unit tests run on small generated arrays so they need no download; they test mechanics only. When the dataset and trained models are present, extra tests check the shared-seed property, the saved split and a real fault through the API. Every result in this README comes from the real dataset.
+`pytest` covers the feature windows (values checked against an independent rolling calculation, causality, no window across a run boundary), the leakage-free split, the alarm logic and the scoring endpoint. Unit tests run on small generated arrays, so they need no download and test mechanics only. When the dataset and trained models are present, extra tests check the shared-seed property, the saved split and a real fault through the API. Every result in this README comes from the real dataset.
 
 ## Layout
 
@@ -294,6 +252,7 @@ src/tep/
   api.py           FastAPI scoring endpoint
 dashboard/app.py   Streamlit replay
 reports/           results from the last evaluation
+docs/              attribution table, notes on a real plant
 tests/
 ```
 
